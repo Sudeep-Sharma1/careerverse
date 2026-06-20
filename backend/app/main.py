@@ -28,7 +28,7 @@ cors_origins = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://careerverse-khaki.vercel.app,https://careerverse-ip7tjgy1g-sudeep-sharma1s-projects.vercel.app"
+        "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://careerverse-khaki.vercel.app,https://careerverse-ip7tjgy1g-sudeep-sharma1s-projects.vercel.app,https://careerverse-i82tteh2f-sudeep-sharma1s-projects.vercel.app,https://careerverse-taupe.vercel.app"
     ).split(",")
     if origin.strip()
 ]
