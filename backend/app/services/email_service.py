@@ -1,5 +1,7 @@
 import os
 import smtplib
+import socket
+import ssl
 from email.message import EmailMessage
 from dotenv import load_dotenv
 
@@ -12,6 +14,37 @@ SMTP_USERNAME = os.getenv("SMTP_USERNAME")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USERNAME)
 DEV_SKIP_EMAIL = os.getenv("DEV_SKIP_EMAIL", "false").lower() == "true"
+
+
+def _connect_smtp():
+    # Prefer IPv4 because some deploy platforms do not provide outbound IPv6.
+    addresses = socket.getaddrinfo(
+        SMTP_HOST,
+        SMTP_PORT,
+        socket.AF_INET,
+        socket.SOCK_STREAM,
+    )
+    last_error = None
+
+    for family, socket_type, proto, _, socket_address in addresses:
+        sock = socket.socket(family, socket_type, proto)
+        sock.settimeout(15)
+        try:
+            sock.connect(socket_address)
+            server = smtplib.SMTP(timeout=15)
+            server.sock = sock
+            server.file = sock.makefile("rb")
+            server._host = SMTP_HOST
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+            return server
+        except Exception as exc:
+            last_error = exc
+            sock.close()
+
+    raise last_error or RuntimeError("Could not connect to SMTP server")
+
 
 class EmailService:
     @staticmethod
@@ -38,8 +71,8 @@ If you did not try to log in, you can ignore this email.
         )
 
         try:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-                server.starttls()
+            print(f"Connecting to SMTP server {SMTP_HOST}:{SMTP_PORT}")
+            with _connect_smtp() as server:
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.send_message(message)
             print(f"OTP email sent to {to_email}")
